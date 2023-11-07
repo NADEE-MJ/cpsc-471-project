@@ -1,6 +1,7 @@
-import socket
 import os
 import sys
+from utils.protocol import send_data
+from utils.socket import connect_to_socket, create_ephemeral_socket_server
 
 
 def print_file_help():
@@ -46,76 +47,29 @@ def check_file_args():
     return serverAddress, serverPort
 
 
-def connect_to_server(serverAddress, serverPort):
-    # Create a TCP socket
-    connectionSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # Connect to the server
-    connectionSocket.connect((serverAddress, serverPort))
-
-    return connectionSocket
-
-
-def create_ephemeral_socket_server():
-    # Create a welcome socket.
-    welcomeSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # Bind the socket to port 0
-    welcomeSocket.bind(("", 0))
-
-    # Retreive the ephemeral port number
-    ephemeralPort = welcomeSocket.getsockname()[1]
-
-    # get socket ip
-    address = socket.gethostbyname(socket.gethostname())
-
-    return welcomeSocket, ephemeralPort, address
-
-
-#! might just be able to make this a send_data function to be reused elsewhere
-def send_command(controlSocket, command):
-    dataSizeStr = str(len(command))
-
-    # Prepend 0's to the size string
-    # until the size is 10 bytes
-    while len(dataSizeStr) < 10:
-        dataSizeStr = "0" + dataSizeStr
-
-    # Prepend the size of the data to the
-    # file data.
-    data = dataSizeStr + command
-
-    # The number of bytes sent
-    numSent = 0
-
-    # Send the data!
-    while len(data) > numSent:
-        numSent += controlSocket.send(data[numSent:].encode("utf-8"))
-
-
-def get_file(controlSocket, serverAddress, fileName):
+def get_file(control_socket, serverAddress, fileName):
     print("Receiving file...")
     #! WRITE CODE FOR RECEIVING FILE
-    # controlSocket.send(command.encode("utf-8"))
-    # controlSocket.send(fileName.encode("utf-8"))
+    # control_socket.send(command.encode("utf-8"))
+    # control_socket.send(fileName.encode("utf-8"))
     # fileObj = open(fileName, "w")
     # while True:
-    #     data = controlSocket.recv(1024).decode("utf-8")
+    #     data = control_socket.recv(1024).decode("utf-8")
     #     if not data:
     #         break
     #     fileObj.write(data)
     # fileObj.close()
 
 
-def put_file(controlSocket, serverAddress, fileName):
+def put_file(control_socket, serverAddress, fileName):
     if not os.path.isfile(fileName):
         print("File does not exist")
 
     #! WRITE CODE FOR SENDING FILE
-    # controlSocket.send(command.encode("utf-8"))
-    # controlSocket.send(fileName.encode("utf-8"))
+    # control_socket.send(command.encode("utf-8"))
+    # control_socket.send(fileName.encode("utf-8"))
     # print("Sending file...")
-    # put_file(controlSocket, fileName)
+    # put_file(control_socket, fileName)
     # print("File sent")
     # # Open the file
     # fileObj = open(fileName, "r")
@@ -135,23 +89,23 @@ def put_file(controlSocket, serverAddress, fileName):
     #     if fileData:
     #         # Get the size of the data read
     #         # and convert it to string
-    #         dataSizeStr = str(len(fileData))
+    #         data_size_str = str(len(fileData))
 
     #         # Prepend 0's to the size string
     #         # until the size is 10 bytes
-    #         while len(dataSizeStr) < 10:
-    #             dataSizeStr = "0" + dataSizeStr
+    #         while len(data_size_str) < 10:
+    #             data_size_str = "0" + data_size_str
 
     #         # Prepend the size of the data to the
     #         # file data.
-    #         fileData = dataSizeStr + fileData
+    #         fileData = data_size_str + fileData
 
     #         # The number of bytes sent
     #         numSent = 0
 
     #         # Send the data!
     #         while len(fileData) > numSent:
-    #             numSent += controlSocket.send(fileData[numSent:].encode("utf-8"))
+    #             numSent += control_socket.send(fileData[numSent:].encode("utf-8"))
 
     #     # The file has been read. We are done
     #     else:
@@ -162,19 +116,25 @@ def put_file(controlSocket, serverAddress, fileName):
     # fileObj.close()
 
 
-def list_files(controlSocket, serverAddress):
-    print("before send")
-    send_command(controlSocket, "ls")
-    print("after send")
+def list_files(control_socket):
+    print("Opening data socket")
+    data_socket, data_socket_port = create_ephemeral_socket_server()
+    data_socket.listen(1)
+    send_data(control_socket, "ls", data_socket_port)
+
+    data_socket, data_socket_address = data_socket.accept()
+    print(data_socket.recv(1024).decode("utf-8"))
+    data_socket.close()
 
 
 def main():
     serverAddress, serverPort = check_file_args()
+
     print(f"Creating control socket for {serverAddress}:{serverPort}")
-    controlSocket = connect_to_server(serverAddress, serverPort)
+    control_socket = connect_to_socket(serverAddress, serverPort)
 
     while True:
-        command = input("Enter a command: ")
+        command = input("ftp> ")
         if command not in ["get", "put", "ls", "quit", "help"]:
             print("Invalid command")
             print_command_help()
@@ -184,18 +144,19 @@ def main():
             print_command_help()
             continue
         elif command == "quit":
+            print("Closing connection...")
+            send_data(control_socket, "quit")
             break
-
-        if command == "get":
+        elif command == "get":
             fileName = input("Enter a file name: ")
-            get_file(controlSocket, serverAddress, fileName)
+            get_file(control_socket, fileName)
         elif command == "put":
             fileName = input("Enter a file name: ")
-            put_file(controlSocket, serverAddress, fileName)
+            put_file(control_socket, fileName)
         elif command == "ls":
-            list_files(controlSocket, serverAddress)
+            list_files(control_socket)
 
-    controlSocket.close()
+    control_socket.close()
 
 
 if __name__ == "__main__":

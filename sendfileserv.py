@@ -1,8 +1,8 @@
-import socket
 import sys
+import os
 
-
-BYTES_PER_PACKET = 10
+from utils.protocol import receive_data
+from utils.socket import connect_to_socket, create_control_socket_server
 
 
 def print_file_help():
@@ -37,62 +37,20 @@ def check_file_args():
         print_file_help()
         sys.exit(1)
 
-    # Server port
-    serverPort = int(sys.argv[1]) if len(sys.argv) >= 2 else 1234
+    server_port = int(sys.argv[1]) if len(sys.argv) >= 2 else 1234
 
-    return serverPort
-
-
-def create_control_socket_server(serverPort):
-    # Create a welcome socket.
-    welcomeSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # Bind the socket to the port
-    welcomeSocket.bind(("", serverPort))
-
-    return welcomeSocket
+    return server_port
 
 
-def receive_command(controlSocket):
-    command_length = int(
-        receive_bytes_from_socket(controlSocket, BYTES_PER_PACKET)
-        .decode("utf-8")
-        .strip("0")
-    )
-    command = receive_bytes_from_socket(controlSocket, command_length).decode("utf-8")
-    return command
+def send_ls(control_socket, client_address, data_socket_port):
+    data_socket = connect_to_socket(client_address, data_socket_port)
+    files = os.listdir()
+    files = "\n".join(files)
+    data_socket.send(files.encode("utf-8"))
+    data_socket.close()
 
 
-def receive_bytes_from_socket(socket, num_bytes):
-    """
-    Receives the specified number of bytes from the specified socket
-
-    Parameters:
-        socket (socket): the socket from which to receive
-        num_bytes (int): the number of bytes to receive
-
-    Returns:
-        bytes: the bytes received
-    """
-    main_buffer = b""
-
-    temp_buffer = b""
-
-    # Keep receiving till num_bytes bytes is received
-    while len(main_buffer) < num_bytes:
-        # Attempt to receive bytes
-        temp_buffer = socket.recv(num_bytes)
-
-        # The other side has closed the socket
-        if not temp_buffer:
-            break
-
-        main_buffer += temp_buffer
-
-    return main_buffer
-
-
-def get_file(controlSocket, serverAddress, fileName):
+def get_file(control_socket, server_address, fileName):
     # The buffer to all data received from the
     # the client.
     fileData = ""
@@ -129,28 +87,40 @@ def get_file(controlSocket, serverAddress, fileName):
 
 
 def main():
-    serverPort = check_file_args()
-
-    # Create a welcome socket.
-    welcomeSock = create_control_socket_server(serverPort)
+    server_port = check_file_args()
+    control_socket = create_control_socket_server(server_port)
 
     # Start listening on the socket
-    welcomeSock.listen(1)
-
-    print("Waiting for connections...")
-
-    clientSock, addr = welcomeSock.accept()
-    print("Accepted connection from client: ", addr)
-    print("\n")
+    control_socket.listen(1)
 
     while True:
-        command = receive_command(clientSock)
+        print("Waiting for connections...")
 
-        check_command(command, clientSock)
+        client_socket, client_info = control_socket.accept()
+        client_address = client_info[0]
+        client_port = client_info[1]
+        print(f"Accepted connection from client: {client_address}:{client_port}")
+        print("\n")
 
-        if command == "ls":
-            print("received ls")
-    clientSock.close()
+        while True:
+            command, data_socket_port = receive_data(client_socket)
+
+            if command == "get":
+                pass
+                # get_file(clientSock, command_list[1])
+            elif command == "put":
+                pass
+                # send_file(clientSock, command_list[1])
+            elif command == "ls":
+                return send_ls(client_socket, client_address, data_socket_port)
+            elif command == "help":
+                print_command_help()
+            elif command == "quit":
+                print("Closing connection...")
+                client_socket.close()
+                break
+            else:
+                print("Invalid command")
 
 
 if __name__ == "__main__":
