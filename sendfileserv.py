@@ -23,7 +23,6 @@ def print_command_help():
             f"\tget <filename>: download a file from the folder where the server is running from\n"
             f"\tput <filename>: upload a file from the folder where the cli is located to the server\n"
             f"\tls: show all files on the server\n"
-            f"\tquit: exit the program\n"
             f"\thelp: show this help message and exit\n"
         )
     )
@@ -46,67 +45,51 @@ def check_file_args():
 
 def create_control_socket_server(serverPort):
     # Create a welcome socket.
-    welcomeSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    welcomeSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # Bind the socket to the port
-    welcomeSock.bind(("", serverPort))
+    welcomeSocket.bind(("", serverPort))
 
-    return welcomeSock
+    return welcomeSocket
 
 
 def receive_command(controlSocket):
-    # The buffer
-    recvBuff = b""
+    command_length = int(
+        receive_bytes_from_socket(controlSocket, BYTES_PER_PACKET)
+        .decode("utf-8")
+        .strip("0")
+    )
+    command = receive_bytes_from_socket(controlSocket, command_length).decode("utf-8")
+    return command
 
-    # The temporary buffer
-    tmpBuff = b""
 
-    # Keep receiving till all is received
-    while len(recvBuff) < BYTES_PER_PACKET:
+def receive_bytes_from_socket(socket, num_bytes):
+    """
+    Receives the specified number of bytes from the specified socket
+
+    Parameters:
+        socket (socket): the socket from which to receive
+        num_bytes (int): the number of bytes to receive
+
+    Returns:
+        bytes: the bytes received
+    """
+    main_buffer = b""
+
+    temp_buffer = b""
+
+    # Keep receiving till num_bytes bytes is received
+    while len(main_buffer) < num_bytes:
         # Attempt to receive bytes
-        tmpBuff = controlSocket.recv(BYTES_PER_PACKET)
-        print(tmpBuff)
+        temp_buffer = socket.recv(num_bytes)
 
         # The other side has closed the socket
-        if not tmpBuff:
+        if not temp_buffer:
             break
 
-        # Add the received bytes to the buffer
-        recvBuff += tmpBuff
+        main_buffer += temp_buffer
 
-    command_string = recvBuff.decode("utf-8")
-
-    return command_string
-
-
-# ************************************************
-# Receives the specified number of bytes
-# from the specified socket
-# @param sock - the socket from which to receive
-# @param numBytes - the number of bytes to receive
-# @return - the bytes received
-# *************************************************
-def receive_all(socket, num_bytes):
-    # The buffer
-    receive_buffer = b""
-
-    # The temporary buffer
-    tmpBuff = b""
-
-    # Keep receiving till all is received
-    while len(recvBuff) < numBytes:
-        # Attempt to receive bytes
-        tmpBuff = sock.recv(numBytes)
-        print(tmpBuff)
-
-        # The other side has closed the socket
-        if not tmpBuff:
-            break
-
-        # Add the received bytes to the buffer
-        recvBuff += tmpBuff
-
-    return recvBuff
+    return main_buffer
 
 
 def get_file(controlSocket, serverAddress, fileName):
@@ -154,19 +137,20 @@ def main():
     # Start listening on the socket
     welcomeSock.listen(1)
 
+    print("Waiting for connections...")
+
+    clientSock, addr = welcomeSock.accept()
+    print("Accepted connection from client: ", addr)
+    print("\n")
+
     while True:
-        print("Waiting for connections...")
+        command = receive_command(clientSock)
 
-        # Accept connections in a with statement
-        clientSock, addr = welcomeSock.accept()
+        check_command(command, clientSock)
 
-        receive_command(clientSock)
-        receive_command(clientSock)
-
-        print("Accepted connection from client: ", addr)
-        print("\n")
-
-        clientSock.close()
+        if command == "ls":
+            print("received ls")
+    clientSock.close()
 
 
 if __name__ == "__main__":

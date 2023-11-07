@@ -56,6 +56,23 @@ def connect_to_server(serverAddress, serverPort):
     return connectionSocket
 
 
+def create_ephemeral_socket_server():
+    # Create a welcome socket.
+    welcomeSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    # Bind the socket to port 0
+    welcomeSocket.bind(("", 0))
+
+    # Retreive the ephemeral port number
+    ephemeralPort = welcomeSocket.getsockname()[1]
+
+    # get socket ip
+    address = socket.gethostbyname(socket.gethostname())
+
+    return welcomeSocket, ephemeralPort, address
+
+
+#! might just be able to make this a send_data function to be reused elsewhere
 def send_command(controlSocket, command):
     dataSizeStr = str(len(command))
 
