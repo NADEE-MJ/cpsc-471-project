@@ -59,6 +59,7 @@ def receive_bytes_from_socket(sock, num_bytes):
 
 def receive_data(sock):
     header = receive_bytes_from_socket(sock, PROTOCOL_HEADER_LENGTH).decode("utf-8")
+    print(header)
     content_length, data_socket_port = decode_header(header)
 
     data = receive_bytes_from_socket(sock, content_length).decode("utf-8")

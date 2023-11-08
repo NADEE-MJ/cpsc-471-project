@@ -1,4 +1,3 @@
-import os
 import sys
 from utils.protocol import send_data, receive_data
 from utils.socket import connect_to_socket, create_ephemeral_socket_server
@@ -38,10 +37,8 @@ def check_file_args():
         print_file_help()
         sys.exit(1)
 
-    # Server Address / IP
     serverAddress = sys.argv[1] if len(sys.argv) > 1 else "localhost"
 
-    # Server port
     serverPort = int(sys.argv[2]) if len(sys.argv) > 2 else 1234
 
     return serverAddress, serverPort
@@ -54,7 +51,9 @@ def list_files(control_socket):
     send_data(control_socket, "ls", data_socket_port)
 
     data_socket, data_socket_address = data_socket.accept()
-    print(receive_data(data_socket))
+    data, port = receive_data(data_socket)
+    print(data)
+    print(port)
     data_socket.close()
 
 

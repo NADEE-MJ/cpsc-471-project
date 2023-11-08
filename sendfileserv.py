@@ -23,6 +23,7 @@ def print_command_help():
             f"\tget <filename>: download a file from the folder where the server is running from\n"
             f"\tput <filename>: upload a file from the folder where the cli is located to the server\n"
             f"\tls: show all files on the server\n"
+            f"\tquit: exit the program\n"
             f"\thelp: show this help message and exit\n"
         )
     )
@@ -44,7 +45,7 @@ def check_file_args():
 
 def send_ls(control_socket, client_address, data_socket_port):
     data_socket = connect_to_socket(client_address, data_socket_port)
-    files = os.listdir()
+    files = os.listdir("ftp/")
     files = "\n".join(files)
     send_data(data_socket, files)
     data_socket.close()
@@ -76,7 +77,7 @@ def main():
                 pass
                 # send_file(clientSock, command_list[1])
             elif command == "ls":
-                return send_ls(client_socket, client_address, data_socket_port)
+                send_ls(client_socket, client_address, data_socket_port)
             elif command == "help":
                 print_command_help()
             elif command == "quit":
