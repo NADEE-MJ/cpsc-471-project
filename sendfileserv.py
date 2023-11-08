@@ -1,7 +1,7 @@
 import sys
 import os
 
-from utils.protocol import receive_data
+from utils.protocol import receive_data, send_data
 from utils.socket import connect_to_socket, create_control_socket_server
 
 
@@ -46,7 +46,7 @@ def send_ls(control_socket, client_address, data_socket_port):
     data_socket = connect_to_socket(client_address, data_socket_port)
     files = os.listdir()
     files = "\n".join(files)
-    data_socket.send(files.encode("utf-8"))
+    send_data(data_socket, files)
     data_socket.close()
 
 

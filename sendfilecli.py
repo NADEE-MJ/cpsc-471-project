@@ -1,6 +1,6 @@
 import os
 import sys
-from utils.protocol import send_data
+from utils.protocol import send_data, receive_data
 from utils.socket import connect_to_socket, create_ephemeral_socket_server
 
 
@@ -54,7 +54,7 @@ def list_files(control_socket):
     send_data(control_socket, "ls", data_socket_port)
 
     data_socket, data_socket_address = data_socket.accept()
-    print(data_socket.recv(1024).decode("utf-8"))
+    print(receive_data(data_socket))
     data_socket.close()
 
 
