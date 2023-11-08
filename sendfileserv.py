@@ -50,42 +50,6 @@ def send_ls(control_socket, client_address, data_socket_port):
     data_socket.close()
 
 
-def get_file(control_socket, server_address, fileName):
-    # The buffer to all data received from the
-    # the client.
-    fileData = ""
-
-    # The temporary buffer to store the received
-    # data.
-    recvBuff = ""
-
-    # The size of the incoming file
-    fileSize = 0
-
-    # The buffer containing the file size
-    fileSizeBuff = ""
-
-    # Receive the first 10 bytes indicating the
-    # size of the file
-    fileSizeBuff = recvAll(clientSock, 10)
-
-    # Get the file size
-    fileSize = int(fileSizeBuff)
-
-    print("The file size is ", fileSize)
-
-    # Get the file data
-    fileData = recvAll(clientSock, fileSize)
-
-    print(fileData.decode("utf-8"))
-
-    print("The file data is: ")
-    print(fileData)
-
-    # Close our side
-    clientSock.close()
-
-
 def main():
     server_port = check_file_args()
     control_socket = create_control_socket_server(server_port)

@@ -1,5 +1,4 @@
 PROTOCOL_HEADER_LENGTH = 16
-PROTOCOL_PACKET_LENGTH = 100
 
 
 def create_protocol_header(content, data_socket_port):
@@ -62,10 +61,7 @@ def receive_data(sock):
     header = receive_bytes_from_socket(sock, PROTOCOL_HEADER_LENGTH).decode("utf-8")
     content_length, data_socket_port = decode_header(header)
 
-    data = ""
-    for i in range(0, content_length, PROTOCOL_PACKET_LENGTH):
-        data += receive_bytes_from_socket(sock, PROTOCOL_PACKET_LENGTH).decode("utf-8")
-        print(data)
+    data = receive_bytes_from_socket(sock, content_length).decode("utf-8")
 
     return data, data_socket_port
 
@@ -78,7 +74,7 @@ def send_data(sock, data, data_socket_port=0):
     # send the data in packets of length PROTOCOL_PACKET_LENGTH
     bytes_sent = 0
 
-    for i in range(0, len(data), PROTOCOL_PACKET_LENGTH):
-        bytes_sent += sock.send(data[i : i + PROTOCOL_PACKET_LENGTH].encode("utf-8"))
+    while len(data) > bytes_sent:
+        bytes_sent += sock.send(data[bytes_sent:].encode("utf-8"))
 
     return bytes_sent
