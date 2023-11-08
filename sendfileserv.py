@@ -45,10 +45,17 @@ def check_file_args():
 
 def send_ls(control_socket, client_address, data_socket_port):
     data_socket = connect_to_socket(client_address, data_socket_port)
-    files = os.listdir("ftp/")
-    files = "\n".join(files)
-    send_data(data_socket, files)
-    data_socket.close()
+    try:
+        files = os.listdir("ftp/")
+        files = "\n".join(files)
+    except Exception as e:
+        print(e)
+        send_data(data_socket, "1", flag=1)
+        send_data(control_socket, "Something went wrong")
+    else:
+        send_data(data_socket, files)
+    finally:
+        data_socket.close()
 
 
 def main():

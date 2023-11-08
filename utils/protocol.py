@@ -1,14 +1,14 @@
-PROTOCOL_HEADER_LENGTH = 16
+PROTOCOL_HEADER_LENGTH = 20
 
 
-def create_protocol_header(content, data_socket_port):
+def create_protocol_header(content, data_socket_port, flag=0):
     """
     Creates a header for the protocol
 
     The header is in the format:
     <length of content>:<data socket port>
 
-    Length of the header is 16 bytes
+    Length of the header is 20 bytes
 
     Parameters:
         content (str): the content to be sent
@@ -17,7 +17,7 @@ def create_protocol_header(content, data_socket_port):
     Returns:
         str: the header
     """
-    header = f"{len(content):010d}:{data_socket_port:05d}"
+    header = f"{len(content):010d}:{data_socket_port:05d}:{flag:03d}"
     return header
 
 
@@ -25,7 +25,8 @@ def decode_header(header):
     split_header = header.split(":")
     content_length = int(split_header[0])
     data_socket_port = int(split_header[1])
-    return content_length, data_socket_port
+    flag = int(split_header[2])
+    return content_length, data_socket_port, flag
 
 
 def receive_bytes_from_socket(sock, num_bytes):
@@ -59,16 +60,18 @@ def receive_bytes_from_socket(sock, num_bytes):
 
 def receive_data(sock):
     header = receive_bytes_from_socket(sock, PROTOCOL_HEADER_LENGTH).decode("utf-8")
-    print(header)
-    content_length, data_socket_port = decode_header(header)
+    content_length, data_socket_port, flag = decode_header(header)
 
-    data = receive_bytes_from_socket(sock, content_length).decode("utf-8")
+    if flag == 0:
+        data = receive_bytes_from_socket(sock, content_length).decode("utf-8")
+    elif flag == 1:
+        data = None
 
     return data, data_socket_port
 
 
-def send_data(sock, data, data_socket_port=0):
-    header = create_protocol_header(data, data_socket_port)
+def send_data(sock, data, data_socket_port=0, flag=0):
+    header = create_protocol_header(data, data_socket_port, flag)
 
     data = header + data
 

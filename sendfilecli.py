@@ -45,15 +45,19 @@ def check_file_args():
 
 
 def list_files(control_socket):
-    print("Opening data socket")
     data_socket, data_socket_port = create_ephemeral_socket_server()
     data_socket.listen(1)
     send_data(control_socket, "ls", data_socket_port)
 
     data_socket, data_socket_address = data_socket.accept()
     data, port = receive_data(data_socket)
-    print(data)
-    print(port)
+    if data is None:
+        # there was an error
+        data, port = receive_data(control_socket)
+        print(data)
+    else:
+        print(data)
+
     data_socket.close()
 
 
