@@ -1,7 +1,7 @@
 import sys
 import os
 
-from utils.protocol import receive_data, send_data
+from utils.protocol import receive_data, send_data, check_file_exists
 from utils.socket import connect_to_socket, create_control_socket_server
 
 
@@ -58,6 +58,19 @@ def send_ls(control_socket, client_address, data_socket_port):
         data_socket.close()
 
 
+def send_file(control_socket, client_address, file_name, data_socket_port):
+    data_socket = connect_to_socket(client_address, data_socket_port)
+    if not check_file_exists(file_name):
+        print("File doesnt exist")
+        send_data(data_socket, "", data_socket_port, 2)
+        send_data(control_socket, "Files doesnt exist")
+
+    file = open("ftp/" + file_name, "r")
+    file_data = file.read()
+    send_data(data_socket, file_data, data_socket_port)
+    file.close()
+
+
 def main():
     server_port = check_file_args()
     control_socket = create_control_socket_server(server_port)
@@ -76,18 +89,20 @@ def main():
 
         while True:
             command, data_socket_port = receive_data(client_socket)
+            command_list = command.split(" ", 1)
 
-            if command == "get":
-                pass
-                # get_file(clientSock, command_list[1])
-            elif command == "put":
+            print(command_list)
+            if command_list[0] == "get":
+                send_file(control_socket, client_address, command_list[1], data_socket_port)
+                print("File sent")
+            elif command_list[0] == "put":
                 pass
                 # send_file(clientSock, command_list[1])
-            elif command == "ls":
+            elif command_list[0] == "ls":
                 send_ls(client_socket, client_address, data_socket_port)
-            elif command == "help":
+            elif command_list[0] == "help":
                 print_command_help()
-            elif command == "quit":
+            elif command_list[0] == "quit":
                 print("Closing connection...")
                 client_socket.close()
                 break
