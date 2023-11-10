@@ -1,5 +1,6 @@
+import os
 import sys
-from utils.protocol import send_data, receive_data
+from utils.protocol import send_data, receive_data, decode_header
 from utils.socket import connect_to_socket, create_ephemeral_socket_server
 
 
@@ -61,6 +62,28 @@ def list_files(control_socket):
     data_socket.close()
 
 
+def get_file(control_socket, file_name):
+    data_socket, data_socket_port = create_ephemeral_socket_server()
+    data_socket.listen(1)
+    send_data(control_socket, "get " + file_name, data_socket_port)
+
+    data_socket, data_socket_address = data_socket.accept()
+    data, port = receive_data(data_socket)
+    if len(data) <= 20:
+        # there was an error
+        _, _, flag = decode_header(data)
+        if flag == 2:
+            print("file doesnt exist")
+
+        data, port = receive_data(control_socket)
+    else:
+        new_file = open("client_files/" + file_name, "w")
+        new_file.write(data[20:])
+        new_file.close()
+
+    data_socket.close()
+
+
 def main():
     serverAddress, serverPort = check_file_args()
 
@@ -69,25 +92,26 @@ def main():
 
     while True:
         command = input("ftp> ")
-        if command not in ["get", "put", "ls", "quit", "help"]:
+        command_list = command.split(" ", 1)
+        if command_list[0] not in ["get", "put", "ls", "quit", "help"]:
             print("Invalid command")
             print_command_help()
             continue
 
-        if command == "help":
+        if command_list[0] == "help":
             print_command_help()
             continue
-        elif command == "quit":
+        elif command_list[0] == "quit":
             print("Closing connection...")
             send_data(control_socket, "quit")
             break
-        elif command == "get":
-            fileName = input("Enter a file name: ")
-            get_file(control_socket, fileName)
-        elif command == "put":
-            fileName = input("Enter a file name: ")
-            put_file(control_socket, fileName)
-        elif command == "ls":
+        elif command_list[0] == "get":
+            file_name = command_list[1]
+            get_file(control_socket, file_name)
+        elif command_list[0] == "put":
+            file_name = command_list[1]
+            put_file(control_socket, file_name)
+        elif command_list[0] == "ls":
             list_files(control_socket)
 
     control_socket.close()

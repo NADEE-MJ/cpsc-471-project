@@ -1,3 +1,5 @@
+from os.path import exists
+
 PROTOCOL_HEADER_LENGTH = 20
 
 
@@ -40,6 +42,7 @@ def receive_bytes_from_socket(sock, num_bytes):
     Returns:
         bytes: the bytes received
     """
+    print(num_bytes)
     main_buffer = b""
 
     temp_buffer = b""
@@ -82,3 +85,10 @@ def send_data(sock, data, data_socket_port=0, flag=0):
         bytes_sent += sock.send(data[bytes_sent:].encode("utf-8"))
 
     return bytes_sent
+
+
+def check_file_exists(file_name):
+    if exists("ftp/" + file_name):
+        return True
+    return False
+
