@@ -58,15 +58,16 @@ def send_ls(control_socket, client_address, data_socket_port):
         data_socket.close()
 
 
-def send_file(control_socket, client_sock, file_name, data_socket_port):
+def send_file(control_socket, client_address, file_name, data_socket_port):
+    data_socket = connect_to_socket(client_address, data_socket_port)
     if not check_file_exists(file_name):
         print("File doesnt exist")
-        send_data(client_sock, "", data_socket_port, 2)
+        send_data(data_socket, "", data_socket_port, 2)
         send_data(control_socket, "Files doesnt exist")
 
     file = open("ftp/" + file_name, "r")
     file_data = file.read()
-    send_data(client_sock, file_data, data_socket_port)
+    send_data(data_socket, file_data, data_socket_port)
     file.close()
 
 
@@ -92,7 +93,7 @@ def main():
 
             print(command_list)
             if command_list[0] == "get":
-                send_file(control_socket, client_socket, command_list[1], data_socket_port)
+                send_file(control_socket, client_address, command_list[1], data_socket_port)
                 print("File sent")
             elif command_list[0] == "put":
                 pass

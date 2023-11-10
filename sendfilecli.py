@@ -78,7 +78,7 @@ def get_file(control_socket, file_name):
         data, port = receive_data(control_socket)
     else:
         new_file = open("client_files/" + file_name, "w")
-        new_file.write(data[20:])
+        new_file.write(data)
         new_file.close()
 
     data_socket.close()
