@@ -71,6 +71,16 @@ def send_file(control_socket, client_address, file_name, data_socket_port):
     file.close()
 
 
+def get_file(control_socket, client_address, file_name, data_socket_port):
+    data_socket = connect_to_socket(client_address, data_socket_port)
+    send_data(data_socket, "R", data_socket_port, 0)
+    data, port = receive_data(data_socket)
+    
+    with open("ftp/" + file_name, "w+") as f:
+        f.write(data)
+    print("Fully received " + file_name + " from client")
+
+
 def main():
     server_port = check_file_args()
     control_socket = create_control_socket_server(server_port)
@@ -96,8 +106,7 @@ def main():
                 send_file(control_socket, client_address, command_list[1], data_socket_port)
                 print("File sent")
             elif command_list[0] == "put":
-                pass
-                # send_file(clientSock, command_list[1])
+                get_file(control_socket, client_address, command_list[1], data_socket_port)
             elif command_list[0] == "ls":
                 send_ls(client_socket, client_address, data_socket_port)
             elif command_list[0] == "help":
