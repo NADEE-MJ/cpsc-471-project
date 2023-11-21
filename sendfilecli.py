@@ -84,6 +84,31 @@ def get_file(control_socket, file_name):
     data_socket.close()
 
 
+def put_file(control_socket, file_name, server_file_name):
+    data_socket, data_socket_port = create_ephemeral_socket_server()
+    data_socket.listen(1)
+    send_data(control_socket, "put " + server_file_name, data_socket_port)
+    
+    data_socket, data_socket_address = data_socket.accept()
+    data, port = receive_data(data_socket)
+    if data is None:
+        if flag == 2:
+            print("unable to create put file")
+        data, port = receive_data(control_socket)
+    else:
+        print("Server is ready for file transmission")
+        print(data)
+    
+    
+    file = open("client_files/" + file_name, "r")
+    file_data = file.read()
+    send_data(data_socket, file_data, data_socket_port)
+    file.close()
+    
+    print("Data is fully in transmitted to server")
+    #add a response here
+
+
 def main():
     serverAddress, serverPort = check_file_args()
 
@@ -110,7 +135,11 @@ def main():
             get_file(control_socket, file_name)
         elif command_list[0] == "put":
             file_name = command_list[1]
-            put_file(control_socket, file_name)
+            server_file_name = input("Enter the name for the file on the server, press enter to keep same: ")
+            print()
+            if server_file_name == str():
+                server_file_name = file_name
+            put_file(control_socket, file_name, server_file_name)
         elif command_list[0] == "ls":
             list_files(control_socket)
 
