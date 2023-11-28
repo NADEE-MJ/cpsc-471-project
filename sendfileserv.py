@@ -46,14 +46,24 @@ def check_file_args():
 def send_ls(control_socket, client_address, data_socket_port):
     data_socket = connect_to_socket(client_address, data_socket_port)
     try:
-        files = os.listdir("ftp/")
-        files = "\n".join(files)
+        files = [
+            f for f in os.listdir("ftp/") if os.path.isfile(os.path.join("ftp/", f))
+        ]
+
+        if not files:
+            ls_text = "No files found in the specified folder."
+        else:
+            ls_text = f"{'#':<5} {'File Name'}\n"
+            ls_text += "-" * 30 + "\n"
+
+        for index, file_name in enumerate(files, start=1):
+            ls_text += f"{index:<5} {file_name}\n"
     except Exception as e:
         print(e)
         send_data(data_socket, "1", flag=1)
         send_data(control_socket, "Something went wrong")
     else:
-        send_data(data_socket, files)
+        send_data(data_socket, ls_text)
     finally:
         data_socket.close()
 
@@ -93,7 +103,9 @@ def main():
 
             print(command_list)
             if command_list[0] == "get":
-                send_file(control_socket, client_address, command_list[1], data_socket_port)
+                send_file(
+                    control_socket, client_address, command_list[1], data_socket_port
+                )
                 print("File sent")
             elif command_list[0] == "put":
                 pass
