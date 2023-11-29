@@ -24,6 +24,9 @@ def create_protocol_header(content, data_socket_port, flag=0):
 
 
 def decode_header(header):
+    if header == '':
+        print("Invalid header received, cannot recover")
+        raise ValueError("Header is empty, expected header of length " + PROTOCOL_HEADER_LENGTH)
     split_header = header.split(":")
     content_length = int(split_header[0])
     data_socket_port = int(split_header[1])
@@ -42,7 +45,7 @@ def receive_bytes_from_socket(sock, num_bytes):
     Returns:
         bytes: the bytes received
     """
-    print(num_bytes)
+    #print(num_bytes)
     main_buffer = b""
 
     temp_buffer = b""
@@ -69,6 +72,12 @@ def receive_data(sock):
         data = receive_bytes_from_socket(sock, content_length).decode("utf-8")
     elif flag == 1:
         data = None
+    elif flag == 2:
+        print("File does not exist")
+        data = None
+    elif flag == 3:
+        print("Transmission Completed")
+        data = receive_bytes_from_socket(sock, content_length).decode("utf-8")
 
     return data, data_socket_port
 
@@ -91,4 +100,3 @@ def check_file_exists(file_name):
     if exists("ftp/" + file_name):
         return True
     return False
-
