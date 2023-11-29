@@ -43,48 +43,71 @@ def check_file_args():
     return server_port
 
 
-def send_ls(control_socket, client_address, data_socket_port):
+#ls command
+def send_ls(client_ssocket, client_address, data_socket_port):
     data_socket = connect_to_socket(client_address, data_socket_port)
     try:
-        files = os.listdir("ftp/")
-        files = "\n".join(files)
+        files = [
+            f for f in os.listdir("ftp/") if os.path.isfile(os.path.join("ftp/", f))
+        ]
+
+        if not files:
+            ls_text = "No files found in the specified folder."
+        else:
+            ls_text = f"{'#':<5} {'File Name'}\n"
+            ls_text += "-" * 30 + "\n"
+
+        for index, file_name in enumerate(files, start=1):
+            ls_text += f"{index:<5} {file_name}\n"
     except Exception as e:
         print(e)
         send_data(data_socket, "1", flag=1)
-        send_data(control_socket, "Something went wrong")
+        send_data(client_socket, "Something went wrong")
     else:
-        send_data(data_socket, files)
+        send_data(data_socket, ls_text)
     finally:
         data_socket.close()
 
 
-def send_file(control_socket, client_address, file_name, data_socket_port):
+#get command
+def send_file(client_socket, client_address, file_name, data_socket_port):
     data_socket = connect_to_socket(client_address, data_socket_port)
     if not check_file_exists(file_name):
-        print("File doesnt exist")
+        print("File does not exist")
         send_data(data_socket, "", data_socket_port, 2)
-        send_data(control_socket, "Files doesnt exist")
+        send_data(client_socket, "File does not exist")
+        return
 
-    file = open("ftp/" + file_name, "r")
-    file_data = file.read()
+    with open("ftp/" + file_name, "r") as file:
+        file_data = file.read()
     send_data(data_socket, file_data, data_socket_port)
-    file.close()
+    print("File sent")
 
 
-def get_file(control_socket, client_address, file_name, data_socket_port):
+#put command
+#the command is put, but the function is a 'get' since the file is received by the server
+def get_file(client_socket, client_address, file_name, data_socket_port):
     data_socket = connect_to_socket(client_address, data_socket_port)
     send_data(data_socket, "R", data_socket_port, 0)
     data, port = receive_data(data_socket)
     
+    print("Fully received " + file_name + " of size " + str(len(data)) + " bytes")
     with open("ftp/" + file_name, "w+") as f:
         f.write(data)
-    print("Fully received " + file_name + " from client")
-
+    
+    print(file_name + " was successfully written")
+    send_data(client_socket, "3", flag=3)
+    print("Client notified that transmission is complete")
 
 def main():
     server_port = check_file_args()
-    control_socket = create_control_socket_server(server_port)
-
+    control_socket = None
+    try:
+        control_socket = create_control_socket_server(server_port)
+    except OSError as e:
+        print("The server port is already in use. If you ran the server on the same port recently, please wait up to 30 seconds for the port to become available again\n" + str(e))
+        exit()
+    
     # Start listening on the socket
     control_socket.listen(1)
 
@@ -103,10 +126,9 @@ def main():
 
             print(command_list)
             if command_list[0] == "get":
-                send_file(control_socket, client_address, command_list[1], data_socket_port)
-                print("File sent")
+                send_file(client_socket, client_address, command_list[1], data_socket_port)
             elif command_list[0] == "put":
-                get_file(control_socket, client_address, command_list[1], data_socket_port)
+                get_file(client_socket, client_address, command_list[1], data_socket_port)
             elif command_list[0] == "ls":
                 send_ls(client_socket, client_address, data_socket_port)
             elif command_list[0] == "help":
@@ -117,7 +139,7 @@ def main():
                 break
             else:
                 print("Invalid command")
-
+    control_socket.close()
 
 if __name__ == "__main__":
     main()
