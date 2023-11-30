@@ -109,8 +109,10 @@ def put_file(control_socket, file_name, server_file_name):
     
     print("Data is fully in transmission to server")
     data, port = receive_data(control_socket)
-    if data is not None or "3":
+    if data is not None or data == "3":
         print("Data has been successfully received by server")
+    else:
+        print("Invalid directory or file path, file written to default location")
     
 
 
@@ -146,9 +148,9 @@ def main():
         elif command_list[0] == "put":
             file_name = command_list[1]
             server_file_name = input("Enter the name for the file on the server, press enter to keep same: ")
-            print()
             if server_file_name == str():
                 server_file_name = file_name
+            
             put_file(control_socket, file_name, server_file_name)
         elif command_list[0] == "ls":
             list_files(control_socket)
