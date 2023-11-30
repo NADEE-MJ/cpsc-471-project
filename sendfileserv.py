@@ -5,6 +5,9 @@ from utils.protocol import receive_data, send_data, check_file_exists
 from utils.socket import connect_to_socket, create_control_socket_server
 
 
+DEFAULT_FILE_NAME = "error_file.txt"
+
+
 def print_file_help():
     print(
         (
@@ -92,9 +95,15 @@ def get_file(client_socket, client_address, file_name, data_socket_port):
     data, port = receive_data(data_socket)
     
     print("Fully received " + file_name + " of size " + str(len(data)) + " bytes")
-    with open("ftp/" + file_name, "w+") as f:
-        f.write(data)
-    
+    try:
+        with open("ftp/" + file_name, "w+") as f:
+            f.write(data)
+    except FileNotFoundError as e:
+        print("No such file directory can be found, writing data to " + DEFAULT_FILE_NAME)
+        send_data(client_socket, "", flag=2)
+        with open("ftp/" + DEFAULT_FILE_NAME, "w+") as f:
+            f.write(data)
+        return
     print(file_name + " was successfully written")
     send_data(client_socket, "3", flag=3)
     print("Client notified that transmission is complete")
