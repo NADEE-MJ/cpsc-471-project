@@ -1,6 +1,7 @@
 from os.path import exists
 
 PROTOCOL_HEADER_LENGTH = 20
+PROTOCOL_MAX_PACKET_LENGTH = 9999999999
 
 
 def create_protocol_header(content, data_socket_port, flag=0):
@@ -19,11 +20,18 @@ def create_protocol_header(content, data_socket_port, flag=0):
     Returns:
         str: the header
     """
+    if len(content) > PROTOCOL_MAX_PACKET_LENGTH:
+        raise ValueError("Content too large, use a smaller file")
     header = f"{len(content):010d}:{data_socket_port:05d}:{flag:03d}"
     return header
 
 
 def decode_header(header):
+    if header == "":
+        print("Invalid header received, cannot recover")
+        raise ValueError(
+            "Header is empty, expected header of length " + PROTOCOL_HEADER_LENGTH
+        )
     split_header = header.split(":")
     content_length = int(split_header[0])
     data_socket_port = int(split_header[1])
@@ -42,7 +50,7 @@ def receive_bytes_from_socket(sock, num_bytes):
     Returns:
         bytes: the bytes received
     """
-    print(num_bytes)
+    # print(num_bytes)
     main_buffer = b""
 
     temp_buffer = b""
@@ -67,7 +75,7 @@ def receive_data(sock):
 
     if flag == 0:
         data = receive_bytes_from_socket(sock, content_length).decode("utf-8")
-    elif flag == 1:
+    elif flag == 1 or flag == 2:
         data = None
 
     return data, data_socket_port
@@ -91,4 +99,3 @@ def check_file_exists(file_name):
     if exists("ftp/" + file_name):
         return True
     return False
-
